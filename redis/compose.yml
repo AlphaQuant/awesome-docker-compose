@@ -1,0 +1,56 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - redis
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+services:
+  redis:
+    image: ${INST_REDIS_IMAGE}
+    container_name: redis
+    entrypoint: redis-server --appendonly yes  --requirepass ${INST_REDIS_PASSWORD}
+    ports:
+      - 6379:6379
+    volumes:
+      - ${INST_REDIS_DIR}:/data
+    env_file:
+      - common.env
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+    <<: *extras
+
+  redis-insights-api:
+    image: ${INST_REDISINSIGHT_IMAGE}
+    container_name: redis-insights-api
+    user: root
+    ports:
+      - 5540:5540
+    volumes:
+      - ${INST_REDISINSIGHT_DIR}:/data
+    env_file:
+      - common.env
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 2G
+    depends_on:
+      - redis
+    <<: *extras
+
+networks:
+  redis:
+    name: redis
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254
