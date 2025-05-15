@@ -12,7 +12,7 @@ services:
   redis:
     image: ${INST_REDIS_IMAGE}
     container_name: redis
-    entrypoint: redis-server --appendonly yes  --requirepass ${INST_REDIS_PASSWORD}
+    entrypoint: redis-server --appendonly yes --requirepass ${INST_REDIS_PASSWORD} --loglevel warning
     ports:
       - 6379:6379
     volumes:
@@ -44,6 +44,9 @@ services:
       - ${INST_REDISINSIGHT_DIR}:/data
     env_file:
       - common.env
+      - redisinsight.env
+    environment:
+      RI_REDIS_PASSWORD: ${INST_REDIS_PASSWORD}
     deploy:
       resources:
         limits:

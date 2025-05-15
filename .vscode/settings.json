@@ -4,6 +4,7 @@
         "changeme",
         "cpus",
         "healthcheck",
+        "loglevel",
         "redisinsight",
         "requirepass"
     ]
