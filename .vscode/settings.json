@@ -3,6 +3,7 @@
         "appendonly",
         "changeme",
         "cpus",
+        "healthcheck",
         "redisinsight",
         "requirepass"
     ]

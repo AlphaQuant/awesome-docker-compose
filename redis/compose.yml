@@ -19,11 +19,19 @@ services:
       - ${INST_REDIS_DIR}:/data
     env_file:
       - common.env
+    environment:
+      REDIS_PASSWORD: ${INST_REDIS_PASSWORD}
     deploy:
       resources:
         limits:
           cpus: "2.00"
           memory: 4G
+    healthcheck:
+      test: '[ $$(redis-cli --pass "$${REDIS_PASSWORD}" ping) = ''PONG'' ]'
+      start_period: 5s
+      timeout: 3s
+      interval: 1s
+      retries: 5
     <<: *extras
 
   redis-insights-api:
@@ -42,7 +50,8 @@ services:
           cpus: "1.00"
           memory: 2G
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
     <<: *extras
 
 networks:
