@@ -34,17 +34,17 @@ services:
       retries: 5
     <<: *extras
 
-  redis-insights:
-    image: ${INST_REDISINSIGHT_IMAGE}
-    container_name: redis-insights
+  redis-insight:
+    image: ${INST_REDIS_INSIGHT_IMAGE}
+    container_name: redis-insight
     user: root
     ports:
       - 5540:5540
     volumes:
-      - ${INST_REDISINSIGHT_DIR}:/data
+      - ${INST_REDIS_INSIGHT_DIR}:/data
     env_file:
       - common.env
-      - redisinsight.env
+      - redis-insight.env
     environment:
       RI_REDIS_PASSWORD: ${INST_REDIS_PASSWORD}
     deploy:
