@@ -1,11 +1,17 @@
 {
     "cSpell.words": [
         "appendonly",
+        "authentik",
         "changeme",
+        "clickhouse",
         "cpus",
+        "goauthentik",
         "healthcheck",
+        "isready",
         "loglevel",
+        "nofile",
         "redisinsight",
-        "requirepass"
+        "requirepass",
+        "ulimits"
     ]
 }

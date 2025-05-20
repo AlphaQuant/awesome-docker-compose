@@ -1,0 +1,96 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - authentik
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+x-authentik-common:
+  &authentik-common
+  env_file:
+    - common.env
+    - authentik.env
+  environment:
+    AUTHENTIK_POSTGRESQL__PASSWORD: ${INST_PG_PASS:?database password required}
+    AUTHENTIK_OUTPOSTS__CONTAINER_IMAGE_BASE: ${INST_AUTHENTIK_OUTPOSTS__CONTAINER_IMAGE_BASE}
+  depends_on:
+    postgresql:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+  networks:
+    - authentik
+  volumes:
+    - ${INST_AUTHENTIK_DIR}/media:/media
+    - ${INST_AUTHENTIK_DIR}/custom-templates:/templates
+    - /var/run/docker.sock:/var/run/docker.sock # for worker only
+    - ./certs:/certs
+  <<: *extras
+
+services:
+  postgresql:
+    image: ${INST_PG_IMAGE}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -d $${POSTGRES_DB} -U $${POSTGRES_USER}"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 5s
+    env_file:
+      - common.env
+    environment:
+      POSTGRES_PASSWORD: ${INST_PG_PASS:?database password required}
+      POSTGRES_USER: ${INST_PG_USER:-authentik}
+      POSTGRES_DB: ${INST_PG_DB:-authentik}
+    volumes:
+      - ${INST_PG_DIR}:/var/lib/postgresql/data
+    shm_size: "256m"
+    <<: *extras
+
+  redis:
+    image: docker.io/library/redis:alpine
+    command: --save 60 1 --loglevel warning
+    env_file:
+      - common.env
+    volumes:
+      - ${INST_REDIS_DIR}:/data
+    healthcheck:
+      test: ["CMD-SHELL", "redis-cli ping | grep PONG"]
+      start_period: 20s
+      interval: 30s
+      retries: 5
+      timeout: 3s
+    <<: *extras
+
+  server:
+    << : *authentik-common
+    image: ${INST_AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.4.1}
+    command: server
+    ports:
+      - "${INST_PORT_HTTP:-9000}:9000"
+      - "${INST_PORT_HTTPS:-9443}:9443"
+
+  worker:
+    << : *authentik-common
+    image: ${INST_AUTHENTIK_IMAGE:-ghcr.io/goauthentik/server}:${AUTHENTIK_TAG:-2025.4.1}
+    command: worker
+    user: root
+  # ldap:
+  #   << : *authentik-common
+  #   image: ${INST_AUTHENTIK_LDAP_IMAGE:-ghcr.io/goauthentik/ldap}:${AUTHENTIK_TAG:-2025.4.1}
+  #   ports:
+  #     - 389:3389
+  #     # - 636:6636
+
+networks:
+  authentik:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254
