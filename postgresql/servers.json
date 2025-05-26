@@ -1,0 +1,17 @@
+{
+    "Servers": {
+        "1": {
+            "Name": "PostgreSQL",
+            "Group": "Servers",
+            "Port": 5432,
+            "Username": "pguser",
+            "PasswordExecCommand": "echo 'changme'",
+            "Host": "postgres",
+            "MaintenanceDB": "pgdb",
+            "ConnectionParameters": {
+                "sslmode": "prefer",
+                "connect_timeout": 10
+            }
+        }
+    }
+}
