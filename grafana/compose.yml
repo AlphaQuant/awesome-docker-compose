@@ -10,7 +10,7 @@ x-extras: &extras
 
 services:
   grafana:
-    image: ${INST_PGADMIN_IMAGE}
+    image: ${INST_GRAFANA_IMAGE}
     container_name: grafana
     user: root
     ports:
