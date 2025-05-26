@@ -1,7 +1,7 @@
 x-extras: &extras
   restart: unless-stopped
   networks:
-    - redis
+    - public
   logging:
     driver: "json-file"
     options:
@@ -16,7 +16,7 @@ services:
     ports:
       - 6379:6379
     volumes:
-      - ${INST_REDIS_DIR}:/data
+      - ${INST_REDIS_DIR}/data:/data
     env_file:
       - common.env
     environment:
@@ -41,7 +41,7 @@ services:
     ports:
       - 5540:5540
     volumes:
-      - ${INST_REDIS_INSIGHT_DIR}:/data
+      - ${INST_REDIS_INSIGHT_DIR}/data:/data
     env_file:
       - common.env
       - redis-insight.env
@@ -58,8 +58,9 @@ services:
     <<: *extras
 
 networks:
-  redis:
-    name: redis
+  public:
+    name: public
+    external: true
     ipam:
       driver: default
       config:
