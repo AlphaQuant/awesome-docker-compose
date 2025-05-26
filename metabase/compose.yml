@@ -1,0 +1,75 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - public
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+services:
+  metabase:
+    container_name: metabase
+    image: ${INST_METABASE_IMAGE}
+    env_file:
+      - common.env
+      - metabase.env
+    environment:
+      MB_DB_PASS: ${INST_POSTGRESQL_PASSWORD}
+    ports:
+      - "15778:3000"
+    volumes:
+      - ${INST_METABASE_DIR}/plugins:/plugins
+      - /dev/urandom:/dev/random:ro
+    deploy:
+      resources:
+        limits:
+          cpus: "4.00"
+          memory: 8G
+    depends_on:
+      metabase-postgres:
+        condition: service_healthy
+    healthcheck:
+      test: curl --fail -I http://localhost:3000/api/health || exit 1
+      interval: 15s
+      timeout: 5s
+      retries: 5
+    <<: *extras
+
+  metabase-postgres:
+    image: ${INST_POSTGRESQL_IMAGE}
+    container_name: metabase-postgres
+    # ports:
+    #   - 5432:5432
+    volumes:
+      - ${INST_POSTGRESQL_DIR}/data:/var/lib/postgresql/data
+    env_file:
+      - common.env
+      - postgres.env
+    environment:
+      POSTGRES_PASSWORD: ${INST_POSTGRESQL_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+    shm_size: '256m'
+    healthcheck:
+      test: pg_isready -q -t 2 -d $$POSTGRES_DB -U $$POSTGRES_USER
+      start_period: 20s
+      timeout: 30s
+      interval: 10s
+      retries: 5
+    <<: *extras
+
+networks:
+  public:
+    name: public
+    external: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254
