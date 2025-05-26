@@ -1,0 +1,70 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - public
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+services:
+  bytebase:
+    container_name: bytebase
+    image: ${INST_BYTEBASE_IMAGE}
+    command: ["--data", "/var/opt/bytebase", "--port", "25678"]
+    env_file:
+      - common.env
+      - bytebase.env
+    environment:
+      PG_URL: postgresql://bytebase:${INST_POSTGRESQL_PASSWORD}@bytebase-postgres:5432/bytebase
+    ports:
+      - "25678:25678"
+    volumes:
+      - ${INST_BYTEBASE_DIR}/data:/var/opt/bytebase
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 2G
+    depends_on:
+      bytebase-postgres:
+        condition: service_healthy
+    <<: *extras
+
+  bytebase-postgres:
+    image: ${INST_POSTGRESQL_IMAGE}
+    container_name: bytebase-postgres
+    # ports:
+    #   - 5432:5432
+    volumes:
+      - ${INST_POSTGRESQL_DIR}/data:/var/lib/postgresql/data
+    env_file:
+      - common.env
+      - postgres.env
+    environment:
+      POSTGRES_PASSWORD: ${INST_POSTGRESQL_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+    shm_size: '256m'
+    healthcheck:
+      test: pg_isready -q -t 2 -d $$POSTGRES_DB -U $$POSTGRES_USER
+      start_period: 20s
+      timeout: 30s
+      interval: 10s
+      retries: 5
+    <<: *extras
+
+networks:
+  public:
+    name: public
+    external: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254
