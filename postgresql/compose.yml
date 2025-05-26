@@ -47,7 +47,7 @@ services:
     environment:
       PGADMIN_DEFAULT_PASSWORD: ${INST_PGADMIN_PASSWORD}
     volumes:
-      - ${INST_PGADMIN_DIR}:/var/lib/pgadmin
+      - ${INST_PGADMIN_DIR}/data:/var/lib/pgadmin
       - ./servers.json:/pgadmin4/servers.json
     deploy:
       resources:
