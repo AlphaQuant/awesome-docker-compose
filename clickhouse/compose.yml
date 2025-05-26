@@ -1,7 +1,7 @@
 x-extras: &extras
   restart: unless-stopped
   networks:
-    - clickhouse
+    - public
   logging:
     driver: "json-file"
     options:
@@ -15,12 +15,14 @@ services:
     env_file:
       - common.env
       - clickhouse.env
+    environment:
+      CLICKHOUSE_PASSWORD: ${INST_CLICKHOUSE_PASSWORD}
     ports:
-      - "9000:9000" # Client port
       - "8123:8123" # HTTP port
+      - "9000:9000" # Client port
     volumes:
-      - ./data:/var/lib/clickhouse
-      - ./logs:/var/log/clickhouse-server
+      - ${INST_CLICKHOUSE_DIR}/data:/var/lib/clickhouse
+      - ${INST_CLICKHOUSE_DIR}/logs:/var/log/clickhouse-server
     ulimits:
       nofile:
         soft: 262144
@@ -33,8 +35,9 @@ services:
     <<: *extras
 
 networks:
-  clickhouse:
-    name: clickhouse
+  public:
+    name: public
+    external: true
     ipam:
       driver: default
       config:

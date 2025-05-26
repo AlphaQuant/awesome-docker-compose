@@ -9,3 +9,14 @@ The awesome-compose repository was created to provide a quick and simple way for
   <img src="https://img.shields.io/badge/Language-DockerCompose-green.svg" alt="Language">
 </p>
 </div>
+
+## Usage
+
+Create docker network public
+
+```bash
+docker network create \
+    --driver bridge \
+    --subnet 172.28.1.0/24 \
+    --gateway 172.28.1.254 public
+```
