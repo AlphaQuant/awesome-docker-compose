@@ -1,0 +1,39 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - public
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+services:
+  vector:
+    image: ${INST_VECTOR_IMAGE}
+    container_name: vector
+    command: ["-c", "/etc/vector/*.yaml", "-w"]
+    ports:
+      - 8686:8686
+    volumes:
+      - ./config:/etc/vector
+    env_file:
+      - common.env
+      - vector.env
+    deploy:
+      resources:
+        limits:
+          cpus: "1.00"
+          memory: 2G
+    <<: *extras
+
+networks:
+  public:
+    name: public
+    external: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254

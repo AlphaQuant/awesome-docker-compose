@@ -6,14 +6,17 @@
         "clickhouse",
         "cpus",
         "DBNAME",
+        "distroless",
         "goauthentik",
         "healthcheck",
         "isready",
+        "libc",
         "loglevel",
         "metabase",
         "nofile",
         "redisinsight",
         "requirepass",
+        "timberio",
         "ulimits"
     ]
 }
