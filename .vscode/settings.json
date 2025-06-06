@@ -5,7 +5,9 @@
         "changeme",
         "clickhouse",
         "cpus",
+        "Dauthentication",
         "DBNAME",
+        "deephaven",
         "distroless",
         "goauthentik",
         "healthcheck",
@@ -14,8 +16,12 @@
         "loglevel",
         "metabase",
         "nofile",
+        "pandaproxy",
         "redisinsight",
+        "redpanda",
+        "redpandadata",
         "requirepass",
+        "Seastar",
         "timberio",
         "ulimits"
     ]

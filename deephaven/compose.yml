@@ -1,0 +1,38 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - public
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+services:
+  deephaven:
+    image: ${INST_DEEPHAVEN_IMAGE}
+    container_name: deephaven
+    ports:
+      - 10000:10000
+    volumes:
+      - ${INST_DEEPHAVEN_DIR}/data:/data
+    env_file:
+      - common.env
+      - deephaven.env
+    deploy:
+      resources:
+        limits:
+          cpus: "16.00"
+          memory: 48G
+    <<: *extras
+
+networks:
+  public:
+    name: public
+    external: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254
