@@ -1,0 +1,156 @@
+x-extras: &extras
+  restart: unless-stopped
+  networks:
+    - public
+  logging:
+    driver: "json-file"
+    options:
+      max-size: "1m"
+      max-file: "1"
+
+services:
+  risingwave:
+    container_name: risingwave
+    image: ${INST_RISINGWAVE_IMAGE}
+    command: "standalone --meta-opts=\" \
+                --listen-addr 0.0.0.0:5690 \
+                --advertise-addr 0.0.0.0:5690 \
+                --dashboard-host 0.0.0.0:5691 \
+                --backend sql \
+                --sql-endpoint postgres://risingwave-meta:${INST_POSTGRESQL_PASSWORD}@risingwave-postgres:5432/risingwave-meta \
+                --state-store hummock+minio://hummockadmin:${INST_MINIO_PASSWORD}@risingwave-minio:9301/hummock001 \
+                --data-directory hummock_001 \
+                --config-path /risingwave.toml\" \
+              --compute-opts=\" \
+                --config-path /risingwave.toml \
+                --listen-addr 0.0.0.0:5688 \
+                --advertise-addr 0.0.0.0:5688 \
+                --async-stack-trace verbose \
+                --parallelism 8 \
+                --total-memory-bytes 21474836480 \
+                --role both \
+                --meta-address http://0.0.0.0:5690 \
+                --memory-manager-target-bytes 22333829939 \" \
+              --frontend-opts=\" \
+                --config-path /risingwave.toml \
+                --listen-addr 0.0.0.0:4566 \
+                --advertise-addr 0.0.0.0:4566 \
+                --health-check-listener-addr 0.0.0.0:6786 \
+                --meta-addr http://0.0.0.0:5690 \
+                --frontend-total-memory-bytes=4294967296\" \
+              --compactor-opts=\" \
+                --listen-addr 0.0.0.0:6660 \
+                --advertise-addr 0.0.0.0:6660 \
+                --meta-address http://0.0.0.0:5690 \
+                --compactor-total-memory-bytes=4294967296\""
+    env_file:
+      - common.env
+      - risingwave.env
+    expose:
+      - "6660"
+      - "4566"
+      - "5688"
+      - "5690"
+      - "1250"
+      - "5691"
+    ports:
+      - "4566:4566"
+      - "5690:5690"
+      - "5691:5691"
+    volumes:
+      - "./risingwave.toml:/risingwave.toml"
+    deploy:
+      resources:
+        limits:
+          cpus: "4.00"
+          memory: 32G
+        reservations:
+          memory: 32G
+    depends_on:
+      risingwave-postgres:
+        condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/6660; exit $$?;'
+        - bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/5688; exit $$?;'
+        - bash -c '> /dev/tcp/127.0.0.1/4566; exit $$?;'
+        - bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/5690; exit $$?;'
+      interval: 1s
+      timeout: 5s
+    <<: *extras
+
+  risingwave-postgres:
+    image: ${INST_POSTGRESQL_IMAGE}
+    container_name: risingwave-postgres
+    # ports:
+    #   - 5432:5432
+    volumes:
+      - ${INST_POSTGRESQL_DIR}/data:/var/lib/postgresql/data
+    env_file:
+      - common.env
+      - postgres.env
+    environment:
+      POSTGRES_PASSWORD: ${INST_POSTGRESQL_PASSWORD}
+    deploy:
+      resources:
+        limits:
+          cpus: "2.00"
+          memory: 4G
+    shm_size: '256m'
+    healthcheck:
+      test: pg_isready -q -t 2 -d $$POSTGRES_DB -U $$POSTGRES_USER
+      start_period: 20s
+      timeout: 30s
+      interval: 10s
+      retries: 5
+    <<: *extras
+
+  risingwave-minio:
+    container_name: risingwave-minio
+    image: "${INST_MINIO_IMAGE}"
+    command:
+      - server
+      - "--address"
+      - "0.0.0.0:9301"
+      - "--console-address"
+      - "0.0.0.0:9400"
+      - /data
+    expose:
+      - "9301"
+      - "9400"
+    ports:
+      - "9301:9301"
+      - "9400:9400"
+    volumes:
+      - "${INST_MINIO_DIR}/data:/data"
+    entrypoint: |
+      /bin/sh -c '
+        set -e
+        mkdir -p "/data/hummock001"
+        /usr/bin/docker-entrypoint.sh "$$0" "$$@"
+      '
+    env_file:
+      - common.env
+      - minio.env
+    environment:
+      MINIO_ROOT_PASSWORD: ${INST_MINIO_PASSWORD}
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - bash -c 'printf \"GET / HTTP/1.1\n\n\" > /dev/tcp/127.0.0.1/9301; exit $$?;'
+      interval: 1s
+      timeout: 5s
+      retries: 5
+    <<: *extras
+
+networks:
+  public:
+    name: public
+    external: true
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.28.1.0/24
+          ip_range: 172.28.1.0/24
+          gateway: 172.28.1.254
