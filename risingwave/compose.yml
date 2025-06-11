@@ -59,6 +59,7 @@ services:
       - "5691:5691"
     volumes:
       - "./risingwave.toml:/risingwave.toml"
+      - "${INST_RISINGWAVE_DIR}/extra-data:/extra-data"
     deploy:
       resources:
         limits:
